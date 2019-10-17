@@ -49,5 +49,9 @@ stage ('Deploy - DEV'){
 } // end build stage
 
 stage ('Deploy - PROD'){
+  input {
+      message "Deploy to PROD?"
+      id "deploy-prod-approval"
+  }
   deploy("prod", PROD_NAMESPACE)
 } // end build stage
