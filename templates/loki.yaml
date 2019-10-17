@@ -177,7 +177,8 @@ objects:
       updateStrategy:
         type: RollingUpdate
     metadata:
-      annotations: {}
+      annotations:
+        template.alpha.openshift.io/wait-for-ready: "true"
       generation: 2
       labels:
         app: ${NAME}

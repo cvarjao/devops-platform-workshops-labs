@@ -14,6 +14,6 @@ node {
     sh "echo HELLO NEW WORLD! "
     sh "ls -lha templates"
     sh "oc process -f templates/loki.yaml -p  NAME=cvarjao-loki | oc apply -f - -n ${DEV_NAMESPACE} --dry-run=true --validate=true"
-    sh "oc process -f templates/loki.yaml -p  NAME=cvarjao-loki | oc apply -f - -n ${DEV_NAMESPACE}"
+    sh "oc process -f templates/loki.yaml -p  NAME=cvarjao-loki | oc apply -f - -n ${DEV_NAMESPACE} --wait"
   } // end build stage
 } //end node
