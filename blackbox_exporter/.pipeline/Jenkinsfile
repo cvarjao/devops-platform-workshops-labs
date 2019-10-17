@@ -1,0 +1,54 @@
+#!/usr/bin/env groovy
+
+//ENV Vars
+def NAMESPACE_PREFIX = "4zq6uj-cvarjao-ocp201-tst" 
+def TOOLS_NAMESPACE = "${NAMESPACE_PREFIX}-tools"
+def DEV_NAMESPACE = "${NAMESPACE_PREFIX}-dev"
+def PROD_NAMESPACE = "${NAMESPACE_PREFIX}-prod"
+
+//Pipeline
+node {
+        stage ('Buld in Tools Namespace'){
+            dir ('simple_pipeline') {
+                checkout scm
+                timeout (time: 600, unit: 'SECONDS'){
+                    openshift.withCluster() {
+                    openshift.withProject("${TOOLS_NAMESPACE}") {
+                            def blackboxSelector = openshift.selector("bc", "blackboxexporter")
+                            try {
+                                blackboxSelector.object()
+                                builds = blackboxSelector.related( "builds" )
+                            } catch (Throwable t) {
+                                nb = openshift.newBuild( "https://github.com/cvarjao/devops-platform-workshops-labs.git#cvarjao-201", "--context-dir=blackbox_exporter", "--name=blackboxexporter" )
+
+                                // Print out information about the objects created by newBuild
+                                echo "newBuild created: ${nb.count()} objects : ${nb.names()}"
+
+                                // Filter non-BuildConfig objects and create selector which will find builds related to the BuildConfig
+                                builds = nb.narrow("bc").related( "builds" )
+                            }
+                                openshift.selector("bc", "blackboxexporter").startBuild("--wait")
+                                builds.watch {
+                                // 'it' is bound to the builds selector.
+                                // Continue to watch until at least one build is detected
+                                if ( it.count() == 0 ) {
+                                    return false
+                                }
+                                // Print out the build's name and terminate the watch
+                                echo "Detected new builds created by buildconfig: ${it.names()}"
+                                return true
+                                }
+
+                                echo "Waiting for builds to complete..."
+
+                                // Like a watch, but only terminate when at least one selected object meets condition
+                                builds.untilEach {
+                                    return it.object().status.phase == "Complete"
+                                }
+                    }
+                    }
+                }
+
+          }
+    }
+}
