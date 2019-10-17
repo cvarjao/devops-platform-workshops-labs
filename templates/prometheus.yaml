@@ -212,3 +212,4 @@ objects:
       labels:
         app: ${NAME}
       name: ${NAME}
+    status: {}
