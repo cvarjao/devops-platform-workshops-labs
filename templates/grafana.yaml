@@ -30,6 +30,30 @@ objects:
         app: ${GRAFANA_SERVICE_NAME}
       name: ${GRAFANA_SERVICE_NAME}
   - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: ${GRAFANA_SERVICE_NAME}-promtail-config
+      labels: 
+        app: ${GRAFANA_SERVICE_NAME}
+    data:
+      promtail.yaml: |
+        server:
+          http_listen_port: 9080
+          grpc_listen_port: 0
+        positions:
+          filename: /tmp/positions.yaml
+        clients:
+          - url: http://${LOKI_SERVICE_NAME}:3100/api/prom/push
+        scrape_configs:
+          - job_name: system 
+            entry_parser: raw 
+            static_configs: 
+              - targets: 
+                  - localhost 
+                labels: 
+                  job: grafana
+                  __path__: /logs/grafana.log
+  - apiVersion: v1
     kind: Service
     spec:
       ports:
@@ -76,6 +100,20 @@ objects:
             deploymentconfig: ${GRAFANA_SERVICE_NAME}
         spec:
           containers:
+            - name: promtail
+              image: 'grafana/promtail:latest'
+              args:
+                - -config.file=/etc/promtail/promtail.yaml
+              env:
+                - name: GF_PATHS_LOGS
+                  value: '/logs'
+                - name: GF_LOG_MODE
+                  value: 'file'
+              volumeMounts:
+                - name: logs
+                  mountPath: /logs
+                - name: promtail-config
+                  mountPath: /etc/promtail
             - image: " "
               imagePullPolicy: IfNotPresent
               name: ${GRAFANA_SERVICE_NAME}
@@ -92,6 +130,8 @@ objects:
                   name: volume-6jl8n
                 - mountPath: /var/lib/grafana/dashboards
                   name: volume-mlvlw
+                - mountPath: /logs
+                  name: logs
           dnsPolicy: ClusterFirst
           restartPolicy: Always
           schedulerName: default-scheduler
@@ -110,6 +150,12 @@ objects:
                 defaultMode: 420
                 name: ${GRAFANA_SERVICE_NAME}-dashboards
               name: volume-mlvlw
+            - configMap: 
+                defaultMode: 420
+                name: ${GRAFANA_SERVICE_NAME}-promtail-config
+              name: promtail-config
+            - emptyDir: {}
+              name: logs
       test: false
       triggers:
         - type: ConfigChange
