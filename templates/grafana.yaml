@@ -104,19 +104,19 @@ objects:
               image: 'grafana/promtail:latest'
               args:
                 - -config.file=/etc/promtail/promtail.yaml
-              env:
-                - name: GF_PATHS_LOGS
-                  value: '/logs'
-                - name: GF_LOG_MODE
-                  value: 'file'
               volumeMounts:
                 - name: logs
                   mountPath: /logs
                 - name: promtail-config
                   mountPath: /etc/promtail
             - image: " "
+              env:
+                - name: GF_PATHS_LOGS
+                  value: '/logs'
+                - name: GF_LOG_MODE
+                  value: 'file'
               imagePullPolicy: IfNotPresent
-              name: ${GRAFANA_SERVICE_NAME}
+              name: grafana
               ports:
                 - containerPort: 3000
                   protocol: TCP
