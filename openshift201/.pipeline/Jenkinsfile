@@ -38,17 +38,10 @@ def deploy(String environmentName, String namespace) {
 }
 
 //Pipeline
-node {
-  stage ('Deploy - DEV'){
-    deploy("dev", DEV_NAMESPACE)
-    /*
-    openshift.withCluster() {
-      openshift.withProject(DEV_NAMESPACE) {
-          def dc = openshift.selector('statefulset', "cvarjao-loki")
-          // this will wait until the desired replicas are available
-          dc.rollout().status()
-      }
-    }
-    */
-  } // end build stage
-} //end node
+stage ('Deploy - DEV'){
+  deploy("dev", DEV_NAMESPACE)
+} // end build stage
+
+stage ('Deploy - PROD'){
+  deploy("prod", PROD_NAMESPACE)
+} // end build stage
