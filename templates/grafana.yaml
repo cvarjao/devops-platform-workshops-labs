@@ -145,6 +145,7 @@ objects:
       labels:
         app: ${GRAFANA_SERVICE_NAME}
       name: ${GRAFANA_SERVICE_NAME}
+    status: {}
   - apiVersion: v1
     data:
       dashboards.yaml: |-
