@@ -213,4 +213,4 @@ objects:
         app: ${NAME}
       name: ${NAME}
     status:
-      ingress: {}
+      ingress: []
