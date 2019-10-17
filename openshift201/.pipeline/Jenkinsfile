@@ -10,10 +10,10 @@ def PROD_NAMESPACE = "${NAMESPACE_PREFIX}-prod"
 //Pipeline
 node {
   stage ('Build Stage'){
-      dir ('simple_pipeline') {
-          checkout scm
-          sh "echo HELLO NEW WORLD! "
-          sh "ls -lha templates"
-      }
+    checkout scm
+    sh "echo HELLO NEW WORLD! "
+    sh "ls -lha templates"
+    sh "oc process -f templates/loki.yaml -p  NAME=cvarjao-loki | oc apply -f - -n ${DEV_NAMESPACE} --dry-run=true --validate=true"
+    sh "oc process -f templates/loki.yaml -p  NAME=cvarjao-loki | oc apply -f - -n ${DEV_NAMESPACE}"
   } // end build stage
 } //end node
