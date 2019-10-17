@@ -54,7 +54,7 @@ node {
     }
     stage('Promote to DEV') {
       openshift.withCluster() {
-          openshift.tag("${TOOLS_NAMESPACE}/blackboxexporter:latest", "${DEV_NAMESPACE}/blackboxexporter:dev", '--reference-policy=Local')
+          openshift.tag("${TOOLS_NAMESPACE}/blackboxexporter:latest", "${DEV_NAMESPACE}/blackboxexporter:dev", '--reference-policy=local')
       }
     }
   stage('Create DEV') {
@@ -76,7 +76,7 @@ node {
   } //end dev stage
   stage('Create PROD') {
       openshift.withCluster() {
-        openshift.tag("${DEV_NAMESPACE}/blackboxexporter:dev", "${PROD_NAMESPACE}/blackboxexporter:prod", '--reference-policy=Local')
+        openshift.tag("${DEV_NAMESPACE}/blackboxexporter:dev", "${PROD_NAMESPACE}/blackboxexporter:prod", '--reference-policy=local')
           openshift.withProject("${PROD_NAMESPACE}") {
             def blackboxdcSelector = openshift.selector("dc", "blackboxexporter")
             try {
