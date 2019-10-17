@@ -9,7 +9,7 @@ objects:
     kind: ImageStream
     spec:
       lookupPolicy:
-        local: false
+        local: true
       tags:
         - annotations:
             openshift.io/imported-from: 'grafana/grafana:6.2.0'
@@ -162,7 +162,7 @@ objects:
         - imageChangeParams:
             automatic: true
             containerNames:
-              - ${GRAFANA_SERVICE_NAME}
+              - grafana
             from:
               kind: ImageStreamTag
               name: '${GRAFANA_SERVICE_NAME}:6.2.0'
