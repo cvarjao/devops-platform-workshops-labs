@@ -12,7 +12,7 @@ node {
   stage ('Build Stage'){
       dir ('simple_pipeline') {
           checkout scm
-          sh "echo HELLO WORLD! "
+          sh "echo HELLO NEW WORLD! "
           sh "ls -lha templates"
       }
   } // end build stage
