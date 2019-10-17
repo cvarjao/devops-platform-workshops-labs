@@ -1,0 +1,19 @@
+#!/usr/bin/env groovy
+
+//ENV Vars
+def NAMESPACE_PREFIX = "4zq6uj-cvarjao-ocp201-tst" 
+def TOOLS_NAMESPACE = "${NAMESPACE_PREFIX}-tools"
+def DEV_NAMESPACE = "${NAMESPACE_PREFIX}-dev"
+def PROD_NAMESPACE = "${NAMESPACE_PREFIX}-prod"
+
+
+//Pipeline
+node {
+  stage ('Build Stage'){
+      dir ('simple_pipeline') {
+          checkout scm
+          sh "echo HELLO WORLD! "
+          sh "ls -lha templates"
+      }
+  } // end build stage
+} //end node

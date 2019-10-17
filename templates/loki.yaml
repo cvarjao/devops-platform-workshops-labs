@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Template
 metadata:
-  name: loki-template
+  name: loki
 parameters:
   - name: NAME
     value: loki
