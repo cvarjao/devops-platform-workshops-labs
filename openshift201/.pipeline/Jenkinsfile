@@ -8,7 +8,7 @@ def PROD_NAMESPACE = "${NAMESPACE_PREFIX}-prod"
 
 
 
-def deploy(String environmentName, String namespace, Closure body) {
+def deploy(String environmentName, String namespace) {
   parallel (
     'loki': {
       dir('loki'){
