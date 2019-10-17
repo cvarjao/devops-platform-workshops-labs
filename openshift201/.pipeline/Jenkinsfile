@@ -11,27 +11,33 @@ def PROD_NAMESPACE = "${NAMESPACE_PREFIX}-prod"
 def deploy(String environmentName, String namespace) {
   parallel (
     'loki': {
-      dir('loki'){
-        checkout scm
-        sh "oc process -f templates/loki.yaml -p  NAME=cvarjao-loki | oc apply -f - -n ${namespace} --dry-run=true --validate=true"
-        sh "oc process -f templates/loki.yaml -p  NAME=cvarjao-loki | oc apply -f - -n ${namespace}"
-        sh "oc -n ${namespace} rollout status statefulset/cvarjao-loki"
+      node {
+        dir('loki'){
+          checkout scm
+          sh "oc process -f templates/loki.yaml -p  NAME=cvarjao-loki | oc apply -f - -n ${namespace} --dry-run=true --validate=true"
+          sh "oc process -f templates/loki.yaml -p  NAME=cvarjao-loki | oc apply -f - -n ${namespace}"
+          sh "oc -n ${namespace} rollout status statefulset/cvarjao-loki"
+        }
       }
     },
     'prometheus': {
-      dir('prometheus'){
-        checkout scm
-        sh "oc process -f templates/prometheus.yaml -p  NAME=cvarjao-prometheus -p NAMESPACE=${namespace} -p ROUTE_HOST=cvarjao-prometheus-${namespace}  | oc apply -f - -n ${namespace} --dry-run=true --validate=true"
-        sh "oc process -f templates/prometheus.yaml -p  NAME=cvarjao-prometheus -p NAMESPACE=${namespace} -p ROUTE_HOST=cvarjao-prometheus-${namespace}  | oc apply -f - -n ${namespace}"
-        sh "oc -n ${namespace} rollout status Deployment/cvarjao-prometheus"
+      node {
+        dir('prometheus'){
+          checkout scm
+          sh "oc process -f templates/prometheus.yaml -p  NAME=cvarjao-prometheus -p NAMESPACE=${namespace} -p ROUTE_HOST=cvarjao-prometheus-${namespace}  | oc apply -f - -n ${namespace} --dry-run=true --validate=true"
+          sh "oc process -f templates/prometheus.yaml -p  NAME=cvarjao-prometheus -p NAMESPACE=${namespace} -p ROUTE_HOST=cvarjao-prometheus-${namespace}  | oc apply -f - -n ${namespace}"
+          sh "oc -n ${namespace} rollout status Deployment/cvarjao-prometheus"
+        }
       }
     },
     'grafana': {
-      dir('grafana'){
-        checkout scm
-        sh "oc process -f templates/grafana.yaml -p  GRAFANA_SERVICE_NAME=cvarjao-grafana -p ROUTE_HOST=cvarjao-grafana-${namespace} -p LOKI_SERVICE_NAME=cvarjao-loki -p PROMETHEUS_SERVICE_NAME=cvarjao-prometheus | oc apply -f - -n ${namespace} --dry-run=true --validate=true"
-        sh "oc process -f templates/grafana.yaml -p  GRAFANA_SERVICE_NAME=cvarjao-grafana -p ROUTE_HOST=cvarjao-grafana-${namespace} -p LOKI_SERVICE_NAME=cvarjao-loki -p PROMETHEUS_SERVICE_NAME=cvarjao-prometheus | oc apply -f - -n ${namespace}"
-        sh "oc -n ${namespace} rollout status DeploymentConfig/cvarjao-grafana"
+      node {
+        dir('grafana'){
+          checkout scm
+          sh "oc process -f templates/grafana.yaml -p  GRAFANA_SERVICE_NAME=cvarjao-grafana -p ROUTE_HOST=cvarjao-grafana-${namespace} -p LOKI_SERVICE_NAME=cvarjao-loki -p PROMETHEUS_SERVICE_NAME=cvarjao-prometheus | oc apply -f - -n ${namespace} --dry-run=true --validate=true"
+          sh "oc process -f templates/grafana.yaml -p  GRAFANA_SERVICE_NAME=cvarjao-grafana -p ROUTE_HOST=cvarjao-grafana-${namespace} -p LOKI_SERVICE_NAME=cvarjao-loki -p PROMETHEUS_SERVICE_NAME=cvarjao-prometheus | oc apply -f - -n ${namespace}"
+          sh "oc -n ${namespace} rollout status DeploymentConfig/cvarjao-grafana"
+        }
       }
     }
   )
