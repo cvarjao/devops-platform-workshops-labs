@@ -49,9 +49,6 @@ stage ('Deploy - DEV'){
 } // end build stage
 
 stage ('Deploy - PROD'){
-  input {
-      message "Deploy to PROD?"
-      id "deploy-prod-approval"
-  }
+  input message: 'Deploy to PROD?', submitter: 'authenticated', submitterParameter: 'approver'
   deploy("prod", PROD_NAMESPACE)
 } // end build stage
