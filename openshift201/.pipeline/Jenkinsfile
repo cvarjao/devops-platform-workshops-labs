@@ -12,22 +12,28 @@ node {
   stage ('Deploy - DEV'){
     parallel (
       'loki': {
-        checkout scm
-        sh "oc process -f templates/loki.yaml -p  NAME=cvarjao-loki | oc apply -f - -n ${DEV_NAMESPACE} --dry-run=true --validate=true"
-        sh "oc process -f templates/loki.yaml -p  NAME=cvarjao-loki | oc apply -f - -n ${DEV_NAMESPACE}"
-        sh "oc -n ${DEV_NAMESPACE} rollout status statefulset/cvarjao-loki"
+        dir('loki'){
+          checkout scm
+          sh "oc process -f templates/loki.yaml -p  NAME=cvarjao-loki | oc apply -f - -n ${DEV_NAMESPACE} --dry-run=true --validate=true"
+          sh "oc process -f templates/loki.yaml -p  NAME=cvarjao-loki | oc apply -f - -n ${DEV_NAMESPACE}"
+          sh "oc -n ${DEV_NAMESPACE} rollout status statefulset/cvarjao-loki"
+        }
       },
       'prometheus': {
-        checkout scm
-        sh "oc process -f templates/prometheus.yaml -p  NAME=cvarjao-prometheus -p NAMESPACE=${DEV_NAMESPACE} -p ROUTE_HOST=cvarjao-prometheus-dev  | oc apply -f - -n ${DEV_NAMESPACE} --dry-run=true --validate=true"
-        sh "oc process -f templates/prometheus.yaml -p  NAME=cvarjao-prometheus -p NAMESPACE=${DEV_NAMESPACE} -p ROUTE_HOST=cvarjao-prometheus-dev  | oc apply -f - -n ${DEV_NAMESPACE}"
-        sh "oc -n ${DEV_NAMESPACE} rollout status statefulset/cvarjao-prometheus-dev"
+        dir('prometheus'){
+          checkout scm
+          sh "oc process -f templates/prometheus.yaml -p  NAME=cvarjao-prometheus -p NAMESPACE=${DEV_NAMESPACE} -p ROUTE_HOST=cvarjao-prometheus-dev  | oc apply -f - -n ${DEV_NAMESPACE} --dry-run=true --validate=true"
+          sh "oc process -f templates/prometheus.yaml -p  NAME=cvarjao-prometheus -p NAMESPACE=${DEV_NAMESPACE} -p ROUTE_HOST=cvarjao-prometheus-dev  | oc apply -f - -n ${DEV_NAMESPACE}"
+          sh "oc -n ${DEV_NAMESPACE} rollout status statefulset/cvarjao-prometheus-dev"
+        }
       },
-      'grapana': {
-        checkout scm
-        sh "oc process -f templates/grafana.yaml -p  GRAFANA_SERVICE_NAME=cvarjao-grafana -p ROUTE_HOST=cvarjao-grafana-dev -p LOKI_SERVICE_NAME=cvarjao-loki -p PROMETHEUS_SERVICE_NAME=cvarjao-prometheus | oc apply -f - -n ${DEV_NAMESPACE} --dry-run=true --validate=true"
-        sh "oc process -f templates/grafana.yaml -p  GRAFANA_SERVICE_NAME=cvarjao-grafana -p ROUTE_HOST=cvarjao-grafana-dev -p LOKI_SERVICE_NAME=cvarjao-loki -p PROMETHEUS_SERVICE_NAME=cvarjao-prometheus | oc apply -f - -n ${DEV_NAMESPACE}"
-        sh "oc -n ${DEV_NAMESPACE} rollout status statefulset/cvarjao-loki"
+      'grafana': {
+        dir('grafana'){
+          checkout scm
+          sh "oc process -f templates/grafana.yaml -p  GRAFANA_SERVICE_NAME=cvarjao-grafana -p ROUTE_HOST=cvarjao-grafana-dev -p LOKI_SERVICE_NAME=cvarjao-loki -p PROMETHEUS_SERVICE_NAME=cvarjao-prometheus | oc apply -f - -n ${DEV_NAMESPACE} --dry-run=true --validate=true"
+          sh "oc process -f templates/grafana.yaml -p  GRAFANA_SERVICE_NAME=cvarjao-grafana -p ROUTE_HOST=cvarjao-grafana-dev -p LOKI_SERVICE_NAME=cvarjao-loki -p PROMETHEUS_SERVICE_NAME=cvarjao-prometheus | oc apply -f - -n ${DEV_NAMESPACE}"
+          sh "oc -n ${DEV_NAMESPACE} rollout status statefulset/cvarjao-loki"
+        }
       }
     )
 
