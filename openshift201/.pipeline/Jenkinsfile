@@ -1,0 +1,54 @@
+#!/usr/bin/env groovy
+
+//ENV Vars
+def NAMESPACE_PREFIX = "4zq6uj-cvarjao-ocp201-tst" 
+def TOOLS_NAMESPACE = "${NAMESPACE_PREFIX}-tools"
+def DEV_NAMESPACE = "${NAMESPACE_PREFIX}-dev"
+def PROD_NAMESPACE = "${NAMESPACE_PREFIX}-prod"
+
+
+
+def deploy(String environmentName, String namespace) {
+  parallel (
+    'loki': {
+      node {
+        dir('loki'){
+          checkout scm
+          sh "oc process -f templates/loki.yaml -p  NAME=cvarjao-loki | oc apply -f - -n ${namespace} --dry-run=true --validate=true"
+          sh "oc process -f templates/loki.yaml -p  NAME=cvarjao-loki | oc apply -f - -n ${namespace}"
+          sh "oc -n ${namespace} rollout status statefulset/cvarjao-loki"
+        }
+      }
+    },
+    'prometheus': {
+      node {
+        dir('prometheus'){
+          checkout scm
+          sh "oc process -f templates/prometheus.yaml -p  NAME=cvarjao-prometheus -p NAMESPACE=${namespace} -p ROUTE_HOST=cvarjao-prometheus-${namespace}  | oc apply -f - -n ${namespace} --dry-run=true --validate=true"
+          sh "oc process -f templates/prometheus.yaml -p  NAME=cvarjao-prometheus -p NAMESPACE=${namespace} -p ROUTE_HOST=cvarjao-prometheus-${namespace}  | oc apply -f - -n ${namespace}"
+          sh "oc -n ${namespace} rollout status Deployment/cvarjao-prometheus"
+        }
+      }
+    },
+    'grafana': {
+      node {
+        dir('grafana'){
+          checkout scm
+          sh "oc process -f templates/grafana.yaml -p  GRAFANA_SERVICE_NAME=cvarjao-grafana -p ROUTE_HOST=cvarjao-grafana-${namespace} -p LOKI_SERVICE_NAME=cvarjao-loki -p PROMETHEUS_SERVICE_NAME=cvarjao-prometheus | oc apply -f - -n ${namespace} --dry-run=true --validate=true"
+          sh "oc process -f templates/grafana.yaml -p  GRAFANA_SERVICE_NAME=cvarjao-grafana -p ROUTE_HOST=cvarjao-grafana-${namespace} -p LOKI_SERVICE_NAME=cvarjao-loki -p PROMETHEUS_SERVICE_NAME=cvarjao-prometheus | oc apply -f - -n ${namespace}"
+          sh "oc -n ${namespace} rollout status DeploymentConfig/cvarjao-grafana"
+        }
+      }
+    }
+  )
+}
+
+//Pipeline
+stage ('Deploy - DEV'){
+  deploy("dev", DEV_NAMESPACE)
+} // end build stage
+
+stage ('Deploy - PROD'){
+  input message: 'Deploy to PROD?', submitter: 'authenticated', submitterParameter: 'approver'
+  deploy("prod", PROD_NAMESPACE)
+} // end build stage

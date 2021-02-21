@@ -1,0 +1,216 @@
+kind: Template
+metadata:
+  name: prometheus
+apiVersion: v1
+parameters:
+  - name: NAMESPACE
+    required: true
+  - name: NAME
+    value: prometheus
+  - name: ROUTE_HOST
+    required: true
+  - description: Default route subdomain
+    displayName: Route subdomain
+    name: ROUTE_DOMAIN
+    required: true
+    value: pathfinder.gov.bc.ca
+objects:
+  - apiVersion: v1
+    data:
+      alerts: |
+        {}
+      prometheus.yml: |
+        global:
+          evaluation_interval: 1m
+          scrape_interval: 1m
+          scrape_timeout: 10s
+        rule_files:
+        - /etc/config/rules
+        - /etc/config/alerts
+        scrape_configs:
+        - job_name: prometheus
+          static_configs:
+          - targets:
+            - localhost:9090
+        - job_name: kubernetes-pods
+          kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - ${NAMESPACE}
+          relabel_configs:
+          - action: keep
+            regex: true
+            source_labels:
+            - __meta_kubernetes_pod_annotation_prometheus_io_scrape
+          - action: replace
+            regex: (.+)
+            source_labels:
+            - __meta_kubernetes_pod_annotation_prometheus_io_path
+            target_label: __metrics_path__
+          - action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            source_labels:
+            - __address__
+            - __meta_kubernetes_pod_annotation_prometheus_io_port
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+          - action: replace
+            source_labels:
+            - __meta_kubernetes_namespace
+            target_label: kubernetes_namespace
+          - action: replace
+            source_labels:
+            - __meta_kubernetes_pod_name
+            target_label: kubernetes_pod_name
+      rules: |
+        {}
+    kind: ConfigMap
+    metadata:
+      annotations: {}
+      labels:
+        app: ${NAME}
+        chart: prometheus-9.1.2
+        component: prometheus
+        heritage: Tiller
+        release: ${NAME}
+      name: ${NAME}
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+    metadata:
+      annotations: {}
+      labels:
+        app: ${NAME}
+        chart: prometheus-9.1.2
+        component: prometheus
+        heritage: Tiller
+        release: ${NAME}
+      name: ${NAME}
+  - apiVersion: v1
+    kind: Service
+    spec:
+      ports:
+        - name: http
+          port: 80
+          protocol: TCP
+          targetPort: 9090
+      selector:
+        app: ${NAME}
+        component: prometheus
+        release: ${NAME}
+      type: ClusterIP
+    metadata:
+      annotations: {}
+      labels:
+        app: ${NAME}
+        chart: prometheus-9.1.2
+        component: prometheus
+        heritage: Tiller
+        release: ${NAME}
+      name: ${NAME}
+  - apiVersion: extensions/v1beta1
+    kind: Deployment
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app: ${NAME}
+          component: prometheus
+          release: ${NAME}
+      template:
+        metadata:
+          labels:
+            app: ${NAME}
+            chart: prometheus-9.1.2
+            component: prometheus
+            heritage: Tiller
+            release: ${NAME}
+        spec:
+          containers:
+            - args:
+                - '--volume-dir=/etc/config'
+                - '--webhook-url=http://127.0.0.1:9090/-/reload'
+              image: 'jimmidyson/configmap-reload:v0.2.2'
+              imagePullPolicy: IfNotPresent
+              name: configmap-reload
+              resources: {}
+              volumeMounts:
+                - mountPath: /etc/config
+                  name: config-volume
+                  readOnly: true
+            - args:
+                - '--storage.tsdb.retention.time=15d'
+                - '--config.file=/etc/config/prometheus.yml'
+                - '--storage.tsdb.path=/data'
+                - '--web.console.libraries=/etc/prometheus/console_libraries'
+                - '--web.console.templates=/etc/prometheus/consoles'
+                - '--web.enable-lifecycle'
+              image: 'prom/prometheus:v2.11.1'
+              imagePullPolicy: IfNotPresent
+              livenessProbe:
+                httpGet:
+                  path: /-/healthy
+                  port: 9090
+                initialDelaySeconds: 30
+                timeoutSeconds: 30
+              name: prometheus
+              ports:
+                - containerPort: 9090
+              readinessProbe:
+                httpGet:
+                  path: /-/ready
+                  port: 9090
+                initialDelaySeconds: 30
+                timeoutSeconds: 30
+              resources: {}
+              volumeMounts:
+                - mountPath: /etc/config
+                  name: config-volume
+                - mountPath: /data
+                  name: storage-volume
+                  subPath: ''
+          serviceAccountName: default
+          terminationGracePeriodSeconds: 300
+          volumes:
+            - configMap:
+                name: ${NAME}
+              name: config-volume
+            - name: storage-volume
+              persistentVolumeClaim:
+                claimName: ${NAME}
+    metadata:
+      annotations: {}
+      labels:
+        app: ${NAME}
+        chart: prometheus-9.1.2
+        component: prometheus
+        heritage: Tiller
+        release: ${NAME}
+      name: ${NAME}
+  - apiVersion: route.openshift.io/v1
+    kind: Route
+    spec:
+      host: ${ROUTE_HOST}.${ROUTE_DOMAIN}
+      port:
+        targetPort: http
+      to:
+        kind: Service
+        name: ${NAME}
+        weight: 100
+      wildcardPolicy: None
+    metadata:
+      annotations:
+        openshift.io/host.generated: 'true'
+      labels:
+        app: ${NAME}
+      name: ${NAME}
+    status:
+      ingress: []
